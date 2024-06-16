@@ -144,19 +144,6 @@ vector<string> extractTokens(const string &htmlContent) {
     return tokens;
 }
 
-// Function to check if the given token is a closing tag
-bool isClosingTag(const string &token) {
-    return token.size() > 2 && token[1] == '/';
-}
-
-// Function to get the tag name from a token
-string getTagName(const string &token) {
-    size_t start = token[1] == '/' ? 2 : 1;
-    size_t end = token.find(' ', start);
-    if (end == string::npos) end = token.find('>', start);
-    return token.substr(start, end - start);
-}
-
 // Function to parse according to CFG rules
 bool parseS(vector<string>& tokens, size_t& index);
 bool parseA(vector<string>& tokens, size_t& index);
