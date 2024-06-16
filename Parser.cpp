@@ -21,34 +21,10 @@ struct List {
     adr first;
 };
 
-// Function to extract tokens from the HTML content
-vector<string> extractTokens(const string &htmlContent) {
-    vector<string> tokens;
-    size_t pos = 0;
-    while ((pos = htmlContent.find('<', pos)) != string::npos) {
-        size_t endPos = htmlContent.find('>', pos);
-        if (endPos == string::npos) break; // Invalid HTML
-        tokens.push_back(htmlContent.substr(pos, endPos - pos + 1));
-        pos = endPos + 1;
-    }
-    return tokens;
-}
+bool isValidToken(const string &token) {
+    string arr[6] = {"html", "head", "title", "body", "p", "h1"};
+    adr A, B, C, D, E, X, p;
 
-// Function to check if the given token is a closing tag
-bool isClosingTag(const string &token) {
-    return token.size() > 2 && token[1] == '/';
-}
-
-// Function to get the tag name from a token
-string getTagName(const string &token) {
-    size_t start = token[1] == '/' ? 2 : 1;
-    size_t end = token.find(' ', start);
-    if (end == string::npos) end = token.find('>', start);
-    return token.substr(start, end - start);
-}
-
-// Function to initialize the DFA
-void initDFA(adr &A, adr &B, adr &C, adr &D, adr &E, adr &X, List &DFA) {
     A = new tag;
     B = new tag;
     C = new tag;
@@ -92,7 +68,93 @@ void initDFA(adr &A, adr &B, adr &C, adr &D, adr &E, adr &X, List &DFA) {
     X->target2 = NULL;
     X->target3 = NULL;
 
-    DFA.first = A;
+    p = A;
+    int i = 0;
+    string sub;
+    while (i < token.length()) {
+        sub = tolower(token[i]);
+        if (p == A) {
+            if (sub == "<") {
+                p = A->target1;
+            } else {
+                p = A->target2;
+            }
+        } else if (p == B) {
+            if (sub == "/") {
+                p = B->target1;
+            } else if (isalpha(sub[0])) {
+                p = B->target2;
+            } else {
+                p = B->target3;
+            }
+        } else if (p == C) {
+            if (isalpha(sub[0]) || (sub[0] == '1')) {
+                p = C->target1;
+            } else if (sub == ">") {
+                p = C->target2;
+            } else {
+                p = C->target3;
+            }
+        } else if (p == D) {
+            if (isalpha(sub[0]) || (sub[0] == '1')) {
+                p = D->target1;
+            } else if (sub == ">") {
+                p = D->target2;
+            } else {
+                p = D->target3;
+            }
+        } else if (p == E) {
+            p = E->target1;
+        } else if (p == X) {
+            p = E->target1;
+        }
+        i++;
+    }
+
+    if (p->info.finalstate) {
+        string lastcheck;
+        if (token[1] == '/') {
+            lastcheck = token.substr(2, token.length() - 3);
+        } else {
+            lastcheck = token.substr(1, token.length() - 2);
+        }
+
+        for (const string &validToken : arr) {
+            if (validToken == lastcheck) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+// Function to extract tokens from the HTML content
+vector<string> extractTokens(const string &htmlContent) {
+    vector<string> tokens;
+    size_t pos = 0;
+    while ((pos = htmlContent.find('<', pos)) != string::npos) {
+        size_t endPos = htmlContent.find('>', pos);
+        if (endPos == string::npos) break; // Invalid HTML
+        string token = htmlContent.substr(pos, endPos - pos + 1); 
+        if (isValidToken(token)){
+            tokens.push_back(token);
+        }
+        pos = endPos + 1;
+    }
+    return tokens;
+}
+
+// Function to check if the given token is a closing tag
+bool isClosingTag(const string &token) {
+    return token.size() > 2 && token[1] == '/';
+}
+
+// Function to get the tag name from a token
+string getTagName(const string &token) {
+    size_t start = token[1] == '/' ? 2 : 1;
+    size_t end = token.find(' ', start);
+    if (end == string::npos) end = token.find('>', start);
+    return token.substr(start, end - start);
 }
 
 // Function to parse according to CFG rules
@@ -188,16 +250,12 @@ bool parseD(vector<string>& tokens, size_t& index) {
 }
 
 // Function to validate the HTML structure using CFG
-bool validateHTML(vector<string>& tokens, List &DFA) {
+bool validateHTML(vector<string>& tokens) {
     size_t index = 0;
     return parseS(tokens, index) && index == tokens.size();
 }
 
 int main() {
-    List DFA;
-    adr A, B, C, D, E, X;
-    initDFA(A, B, C, D, E, X, DFA);
-
     while (true) {
         string filename;
         cout << "Enter the HTML file name (or type 'exit' to quit): ";
@@ -218,7 +276,7 @@ int main() {
         htmlFile.close();
 
         vector<string> tokens = extractTokens(htmlContent);
-        bool isValid = validateHTML(tokens, DFA);
+        bool isValid = validateHTML(tokens);
 
         cout << "Tokens:" << endl;
         for (const auto &token : tokens) {
