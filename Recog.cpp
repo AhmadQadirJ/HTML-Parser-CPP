@@ -100,7 +100,7 @@ int main(){
                     p = B->target3;
                 }
             }else if(p == C){
-                if (isalpha(sub[0])){
+                if (isalpha(sub[0]) || (sub[0] == '1')){
                     p = C->target1;
                 }else if(sub == ">"){
                     p = C->target2;
